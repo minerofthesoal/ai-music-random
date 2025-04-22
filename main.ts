@@ -5,15 +5,26 @@ namespace randomMusic {
     let currentWave: WaveShape = WaveShape.Sine
     let visualizerEnabled = false
 
+    //% block="Visualizer Mode"
+    export enum VisualizerMode {
+        //% block="Bar"
+        Bar,
+        //% block="Wave"
+        Wave,
+        //% block="Particle"
+        Particle
+    }
+
+    let visualizerMode: VisualizerMode = VisualizerMode.Bar
+
     const majorScale = [0, 2, 4, 5, 7, 9, 11]
     const minorScale = [0, 2, 3, 5, 7, 8, 10]
-
     const instrumentWaves: WaveShape[] = [
-        WaveShape.Triangle, // Piano
-        WaveShape.Sawtooth, // Bass/Strings
-        WaveShape.Square,   // Guitar-ish
-        WaveShape.Sine,     // Strings
-        WaveShape.Noise     // Drums
+        WaveShape.Triangle,
+        WaveShape.Sawtooth,
+        WaveShape.Square,
+        WaveShape.Sine,
+        WaveShape.Noise
     ]
 
     //% block="set music seed to %seed"
@@ -44,6 +55,12 @@ namespace randomMusic {
         visualizerEnabled = enabled
     }
 
+    //% block="set visualizer mode to %mode"
+    //% mode.shadow="randomMusic.VisualizerMode"
+    export function setVisualizerMode(mode: VisualizerMode): void {
+        visualizerMode = mode
+    }
+
     function randomizeInstrument() {
         currentWave = instrumentWaves[seededRandom(0, instrumentWaves.length - 1)]
     }
@@ -51,17 +68,39 @@ namespace randomMusic {
     function getScaleNote(): number {
         const scale = currentKeyIsMajor ? majorScale : minorScale
         const base = 110
-        const octaveOffset = seededRandom(0, 4)
+        const octaveOffset = seededRandom(0, 5)
         const step = scale[seededRandom(0, scale.length - 1)] + 12 * octaveOffset
         return base * Math.pow(2, step / 12)
     }
 
     function showVisualizer(freq: number) {
         if (!visualizerEnabled) return
-        let barHeight = Math.clamp(5, 60, Math.map(freq, 110, 2000, 5, 60))
-        let barX = seededRandom(0, 120)
-        let col = Math.randomRange(1, 15)
-        screen.fillRect(barX, 60 - barHeight, 3, barHeight, col)
+
+        const xOrigin = 110
+        const yOrigin = 90
+        const color = randint(2, 15)
+        const height = Math.clamp(4, 40, Math.map(freq, 110, 2000, 4, 40))
+
+        switch (visualizerMode) {
+            case VisualizerMode.Bar:
+                screen.fillRect(xOrigin, yOrigin - height, 6, height, color)
+                break
+
+            case VisualizerMode.Wave:
+                for (let i = 0; i < 20; i++) {
+                    let y = Math.sin((freq / 200) + i / 2) * 5
+                    screen.setPixel(xOrigin + i, yOrigin - y, color)
+                }
+                break
+
+            case VisualizerMode.Particle:
+                for (let i = 0; i < 6; i++) {
+                    let dx = xOrigin + randint(0, 12)
+                    let dy = yOrigin - randint(0, height)
+                    screen.setPixel(dx, dy, color)
+                }
+                break
+        }
     }
 
     //% block="play random sound effect"
@@ -100,8 +139,8 @@ namespace randomMusic {
             ["C4", "C4", "-", "C4", "-", "C4", "C4", "-"],
             ["C4", "-", "-", "C4", "C4", "-", "-", "C4"]
         ]
-        const base2 = patterns[seededRandom(0, patterns.length - 1)]
-        const hybrid = base2.map(b => {
+        const base = patterns[seededRandom(0, patterns.length - 1)]
+        const hybrid = base.map(b => {
             if (seededRandom(0, 99) < 40) {
                 return seededRandom(0, 1) === 0 ? "C4" : "-"
             }
@@ -122,31 +161,28 @@ namespace randomMusic {
     export function playFullRandomSong(): void {
         noteLog = []
         randomizeInstrument()
-
-        screen.fill(0) // clear screen for visualizer
-
         const minDuration = 12000
         const maxDuration = 120000
         const targetDuration = seededRandom(minDuration, maxDuration)
         let elapsed = 0
 
-        const beatDurations2 = [125, 250, 375, 500, 750]
-        const scale2 = currentKeyIsMajor ? majorScale : minorScale
+        const beatDurations = [125, 250, 375, 500, 750]
+        const scale = currentKeyIsMajor ? majorScale : minorScale
 
         const patternLength = seededRandom(8, 16)
         const pattern: number[] = []
-        for (let j = 0; j < patternLength; j++) {
-            const octaveOffset2 = seededRandom(0, 4)
-            const step2 = scale2[seededRandom(0, scale2.length - 1)] + 12 * octaveOffset2
-            pattern.push(step2)
+        for (let i = 0; i < patternLength; i++) {
+            const octaveOffset = seededRandom(0, 4)
+            const step = scale[seededRandom(0, scale.length - 1)] + 12 * octaveOffset
+            pattern.push(step)
         }
 
         const baseFreq = 110
 
         while (elapsed < targetDuration) {
-            const step3 = pattern[seededRandom(0, pattern.length - 1)]
-            const freq = baseFreq * Math.pow(2, step3 / 12)
-            const duration2 = beatDurations2[seededRandom(0, beatDurations2.length - 1)]
+            const step = pattern[seededRandom(0, pattern.length - 1)]
+            const freq = baseFreq * Math.pow(2, step / 12)
+            const duration = beatDurations[seededRandom(0, beatDurations.length - 1)]
 
             noteLog.push(freq)
             showVisualizer(freq)
@@ -159,7 +195,7 @@ namespace randomMusic {
                     freq,
                     255,
                     0,
-                    duration2,
+                    duration,
                     SoundExpressionEffect.None,
                     InterpolationCurve.Linear
                 ), music.PlaybackMode.UntilDone)
@@ -169,13 +205,12 @@ namespace randomMusic {
                 playHybridBeat()
             }
 
-            pause(duration2)
-            elapsed += duration2
+            pause(duration)
+            elapsed += duration
         }
 
         if (visualizerEnabled) {
-            pause(1000)
-            screen.fill(0)
+            pause(500)
         }
     }
 }
