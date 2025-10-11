@@ -3,6 +3,19 @@ namespace randomMusic {
     let currentKeyIsMajor = true
     let noteLog: number[] = []
     let currentWave: WaveShape = WaveShape.Sine
+    let visualizerEnabled = false
+
+    //% block="Visualizer Mode"
+    export enum VisualizerMode {
+        //% block="Bar"
+        Bar,
+        //% block="Wave"
+        Wave,
+        //% block="Particle"
+        Particle
+    }
+
+    let visualizerMode: VisualizerMode = VisualizerMode.Bar
 
     const majorScale = [0, 2, 4, 5, 7, 9, 11]
     const minorScale = [0, 2, 3, 5, 7, 8, 10]
@@ -13,12 +26,6 @@ namespace randomMusic {
         WaveShape.Sine,
         WaveShape.Noise
     ]
-
-    const noteFrequencies: { [note: string]: number } = {
-        "C4": 261.63, "D4": 293.66, "E4": 329.63, "F4": 349.23, "G4": 392.00,
-        "A4": 440.00, "B4": 493.88, "C5": 523.25, "D5": 587.33, "E5": 659.25,
-        "F5": 698.46, "G5": 783.99, "A5": 880.00, "B5": 987.77
-    }
 
     //% block="set music seed to %seed"
     export function setMusicSeed(seed: number): void {
@@ -42,26 +49,72 @@ namespace randomMusic {
         currentWave = wave
     }
 
+    //% block="enable visualizer %enabled"
+    //% enabled.shadow="toggleOnOff"
+    export function enableVisualizer(enabled: boolean): void {
+        visualizerEnabled = enabled
+    }
+
+    //% block="set visualizer mode to %mode"
+    //% mode.shadow="randomMusic.VisualizerMode"
+    export function setVisualizerMode(mode: VisualizerMode): void {
+        visualizerMode = mode
+    }
+
     function randomizeInstrument() {
         currentWave = instrumentWaves[seededRandom(0, instrumentWaves.length - 1)]
     }
 
-    function getRandomNote(): number {
-        const noteKeys = Object.keys(noteFrequencies)
-        const selectedNote = noteKeys[seededRandom(0, noteKeys.length - 1)]
-        return noteFrequencies[selectedNote]
+    function getScaleNote(): number {
+        const scale = currentKeyIsMajor ? majorScale : minorScale
+        const base = 110
+        const octaveOffset = seededRandom(0, 5)
+        const step = scale[seededRandom(0, scale.length - 1)] + 12 * octaveOffset
+        return base * Math.pow(2, step / 12)
+    }
+
+    function showVisualizer(freq: number) {
+        if (!visualizerEnabled) return
+
+        const xOrigin = 110
+        const yOrigin = 90
+        const color = randint(2, 15)
+        const height = Math.clamp(4, 40, Math.map(freq, 110, 2000, 4, 40))
+
+        switch (visualizerMode) {
+            case VisualizerMode.Bar:
+                screen.fillRect(xOrigin, yOrigin - height, 6, height, color)
+                break
+
+            case VisualizerMode.Wave:
+                for (let i = 0; i < 20; i++) {
+                    let y = Math.sin((freq / 200) + i / 2) * 5
+                    screen.setPixel(xOrigin + i, yOrigin - y, color)
+                }
+                break
+
+            case VisualizerMode.Particle:
+                for (let i = 0; i < 6; i++) {
+                    let dx = xOrigin + randint(0, 12)
+                    let dy = yOrigin - randint(0, height)
+                    screen.setPixel(dx, dy, color)
+                }
+                break
+        }
     }
 
     //% block="play random sound effect"
     export function playRandomSound(): void {
-        const freq = getRandomNote()
+        const freqStart = getScaleNote()
+        const freqEnd = getScaleNote()
         const duration = seededRandom(100, 400)
-        noteLog.push(freq)
+        noteLog.push(freqStart)
+        showVisualizer(freqStart)
 
         music.play(music.createSoundEffect(
             currentWave,
-            freq,
-            freq,
+            freqStart,
+            freqEnd,
             255,
             0,
             duration,
@@ -72,7 +125,7 @@ namespace randomMusic {
 
     //% block="play random rhythm sequence"
     export function playRandomRhythm(): void {
-        const beatDurations = [100, 200, 300, 400]
+        const beatDurations = [125, 200, 300, 400]
         for (let i = 0; i < 4; i++) {
             playRandomSound()
             pause(beatDurations[seededRandom(0, beatDurations.length - 1)])
@@ -83,73 +136,81 @@ namespace randomMusic {
     export function playHybridBeat(): void {
         const patterns: string[][] = [
             ["C4", "-", "C4", "-", "C4", "-", "C4", "-"],
-            ["C4", "D4", "-", "C4", "-", "E4", "C4", "-"],
-            ["C4", "-", "-", "F4", "G4", "-", "-", "C4"]
+            ["C4", "C4", "-", "C4", "-", "C4", "C4", "-"],
+            ["C4", "-", "-", "C4", "C4", "-", "-", "C4"]
         ]
         const base = patterns[seededRandom(0, patterns.length - 1)]
         const hybrid = base.map(b => {
-            if (b === "-") {
-                const keys = Object.keys(noteFrequencies)
-                return seededRandom(0, 1) === 0 ? keys[seededRandom(0, keys.length - 1)] : "-"
+            if (seededRandom(0, 99) < 40) {
+                return seededRandom(0, 1) === 0 ? "C4" : "-"
             }
             return b
         })
 
         for (let b of hybrid) {
-            if (b !== "-") {
-                music.playTone(noteFrequencies[b], music.beat(BeatFraction.Eighth))
+            if (b == "C4") {
+                showVisualizer(261.6)
+                music.playTone(Note.C, music.beat(BeatFraction.Eighth))
             } else {
                 pause(music.beat(BeatFraction.Eighth))
             }
         }
     }
 
-    //% block="play seeded fixed song"
-    export function playSeededSong(): void {
+    //% block="play full random song"
+    export function playFullRandomSong(): void {
         noteLog = []
         randomizeInstrument()
+        const minDuration = 12000
+        const maxDuration = 120000
+        const targetDuration = seededRandom(minDuration, maxDuration)
+        let elapsed = 0
 
-        const melodyNotes = ["C4", "E4", "G4", "A4", "F4", "E4", "D4", "C5"]
-        const baseFreq = 110
+        const beatDurations = [125, 250, 375, 500, 750]
         const scale = currentKeyIsMajor ? majorScale : minorScale
 
-        for (let j = 0; j < melodyNotes.length; j++) {
-            // Use seed to select the octave offset
-            const octaveOffset = (rngSeed + j) % 2
-            const noteName = melodyNotes[j]
-            const freq2 = noteFrequencies[noteName] * Math.pow(2, octaveOffset)
-            noteLog.push(freq2)
-
-            music.play(music.createSoundEffect(
-                currentWave,
-                freq2,
-                freq2,
-                255,
-                0,
-                400,
-                SoundExpressionEffect.None,
-                InterpolationCurve.Linear
-            ), music.PlaybackMode.UntilDone)
-            pause(400)
+        const patternLength = seededRandom(8, 16)
+        const pattern: number[] = []
+        for (let i = 0; i < patternLength; i++) {
+            const octaveOffset = seededRandom(0, 4)
+            const step = scale[seededRandom(0, scale.length - 1)] + 12 * octaveOffset
+            pattern.push(step)
         }
-    }
 
-    //% block="play chill ambient sequence"
-    export function playAmbientSequence(): void {
-        randomizeInstrument()
-        for (let k = 0; k < 10; k++) {
-            const freq3 = getRandomNote()
-            music.play(music.createSoundEffect(
-                currentWave,
-                freq3,
-                freq3,
-                180,
-                0,
-                300 + seededRandom(0, 200),
-                SoundExpressionEffect.None,
-                InterpolationCurve.Curve
-            ), music.PlaybackMode.UntilDone)
-            pause(150 + seededRandom(0, 150))
+        const baseFreq = 110
+
+        while (elapsed < targetDuration) {
+            const step = pattern[seededRandom(0, pattern.length - 1)]
+            const freq = baseFreq * Math.pow(2, step / 12)
+            const duration = beatDurations[seededRandom(0, beatDurations.length - 1)]
+
+            noteLog.push(freq)
+            showVisualizer(freq)
+
+            const choice = seededRandom(0, 2)
+            if (choice === 0) {
+                music.play(music.createSoundEffect(
+                    currentWave,
+                    freq,
+                    freq,
+                    255,
+                    0,
+                    duration,
+                    SoundExpressionEffect.None,
+                    InterpolationCurve.Linear
+                ), music.PlaybackMode.UntilDone)
+            } else if (choice === 1) {
+                playRandomRhythm()
+            } else {
+                playHybridBeat()
+            }
+
+            pause(duration)
+            elapsed += duration
+        }
+
+        if (visualizerEnabled) {
+            pause(500)
         }
     }
 }
