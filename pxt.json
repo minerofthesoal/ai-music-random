@@ -1,6 +1,7 @@
 {
-    "name": "ai music random",
-    "description": "",
+    "name": "AI Music Random",
+    "version": "1.0.0",
+    "description": "Procedural music generator for MakeCode Arcade. Generate melodies, chords, rhythms, and full songs using seeded randomness constrained to musical scales.",
     "dependencies": {
         "device": "*"
     },
