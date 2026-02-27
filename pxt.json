@@ -1,7 +1,7 @@
 {
     "name": "AI Music Random",
-    "version": "1.0.0",
-    "description": "Procedural music generator for MakeCode Arcade. Generate melodies, chords, rhythms, and full songs using seeded randomness constrained to musical scales.",
+    "version": "3.0.0",
+    "description": "V3 procedural music generator for MakeCode Arcade. 39 blocks: melodies, chords, rhythms, arpeggios, basslines, drum patterns, fanfares, ambient, solos, call-and-response, song codes, AI prompt generation (LM Studio/OpenAI/Anthropic), 11 scales, 8 visualizer styles, song styles, articulation, transposition, and more.",
     "dependencies": {
         "device": "*"
     },
