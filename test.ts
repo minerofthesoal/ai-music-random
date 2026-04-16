@@ -1,60 +1,29 @@
-// AI Music Random V3 — Test suite
-// This file is not compiled when this package is used as an extension.
+// AI Music Random — test harness.
+// Not compiled when this package is imported as an extension.
 
-// ── Configuration ─────────────────────────────────────────────────────────────
+// ─── Setup ────────────────────────────────────────────────────────────────
 aiMusic.setSeed(42)
-aiMusic.setTempo(120)
-aiMusic.setVolume(200)
-aiMusic.setInstrument(WaveShape.Triangle)
-aiMusic.setArticulation(aiMusic.Articulation.Normal)
-
-// Test: random seed returns a positive number
-const rs = aiMusic.randomSeed()
-aiMusic.setSeed(rs)   // re-apply so tests are reproducible from here
-
-// Test: clamping for tempo
-aiMusic.setTempo(10)   // clamps to 40
-aiMusic.setTempo(999)  // clamps to 240
-aiMusic.setTempo(120)
-
-// Test: clamping for volume
-aiMusic.setVolume(-10) // clamps to 0
-aiMusic.setVolume(500) // clamps to 255
-aiMusic.setVolume(200)
-
-// ── AI & Song Codes ───────────────────────────────────────────────────────────
-aiMusic.setApiKey(aiMusic.AiService.LMStudio, "test-key")
-aiMusic.setApiKey(aiMusic.AiService.OpenAI, "sk-test")
-aiMusic.setApiKey(aiMusic.AiService.Anthropic, "ant-test")
-aiMusic.setAiModel("gpt-4o")
-aiMusic.setLMStudioUrl("http://localhost:1234/v1")
-
-// Test: prompt parser sets scale/tempo/wave correctly
-aiMusic.generateFromAI("happy fast synth music")
-aiMusic.generateFromAI("slow sad piano ballad")
-aiMusic.generateFromAI("mysterious eerie jazz")
-aiMusic.generateFromAI("heroic epic guitar rock")
-aiMusic.generateFromAI("dream ambient")
-
-// Test: song code round-trip
-aiMusic.setSeed(777)
-aiMusic.setTempo(130)
+aiMusic.setTempo(200)        // fast for quick test passes
 aiMusic.setVolume(180)
-aiMusic.setScale(aiMusic.Scale.Dorian)
-aiMusic.setRootNote(294)
-aiMusic.setInstrument(WaveShape.Sawtooth)
-aiMusic.setArticulation(aiMusic.Articulation.Staccato)
-aiMusic.setBaseOctave(1)
-const code = aiMusic.getSongCode()
-// Reset to different values, then reload
-aiMusic.setSeed(1)
-aiMusic.setTempo(90)
-aiMusic.loadSongCode(code)   // should restore all settings above
-aiMusic.loadSongCode("")     // invalid — silently ignored
-aiMusic.loadSongCode("AIMSV3|bad") // too few parts — silently ignored
+aiMusic.setInstrument(WaveShape.Triangle)
+aiMusic.setFeel(aiMusic.Feel.Straight)
 
-// ── Scales & Keys ─────────────────────────────────────────────────────────────
-aiMusic.setRootNote(262)
+// Clamping checks
+aiMusic.setTempo(10)         // → 40
+aiMusic.setTempo(999)        // → 240
+aiMusic.setTempo(200)
+aiMusic.setVolume(-50)       // → 0
+aiMusic.setVolume(500)       // → 255
+aiMusic.setVolume(180)
+
+// Random seed returns a positive number
+const fresh = aiMusic.randomSeed()
+aiMusic.setSeed(fresh)
+aiMusic.setSeed(0)           // 0 should normalise to 1
+aiMusic.setSeed(42)
+
+// ─── Scale & Key ──────────────────────────────────────────────────────────
+aiMusic.setRoot(262)
 aiMusic.setScale(aiMusic.Scale.Major)
 aiMusic.setScale(aiMusic.Scale.Minor)
 aiMusic.setScale(aiMusic.Scale.Pentatonic)
@@ -63,112 +32,85 @@ aiMusic.setScale(aiMusic.Scale.Dorian)
 aiMusic.setScale(aiMusic.Scale.Mixolydian)
 aiMusic.setScale(aiMusic.Scale.Lydian)
 aiMusic.setScale(aiMusic.Scale.Phrygian)
-aiMusic.setScale(aiMusic.Scale.Locrian)
 aiMusic.setScale(aiMusic.Scale.HarmonicMinor)
 aiMusic.setScale(aiMusic.Scale.WholeTone)
-aiMusic.setScale(aiMusic.Scale.Major) // reset
-
-aiMusic.transposeBy(0)    // identity
-aiMusic.transposeBy(7)    // up a fifth
-aiMusic.transposeBy(-7)   // back down
-aiMusic.setRootNote(262)  // restore
-
-aiMusic.setBaseOctave(0)
-aiMusic.setBaseOctave(2)
-aiMusic.setBaseOctave(-2)
-aiMusic.setBaseOctave(0)
-
-// ── Playback (fast tempo for quick tests) ────────────────────────────────────
-aiMusic.setSeed(1)
-aiMusic.setTempo(200)
-aiMusic.setVolume(200)
+aiMusic.setScale(aiMusic.Scale.Chromatic)
 aiMusic.setScale(aiMusic.Scale.Major)
-aiMusic.setInstrument(WaveShape.Triangle)
-aiMusic.setArticulation(aiMusic.Articulation.Normal)
 
-aiMusic.playRandomNote()
-aiMusic.playRandomMelody(4)
+aiMusic.transpose(7)
+aiMusic.transpose(-7)
+aiMusic.setRoot(262)
+
+aiMusic.setOctave(2)
+aiMusic.setOctave(-2)
+aiMusic.setOctave(0)
+
+aiMusic.applyMood(aiMusic.Mood.Happy)
+aiMusic.applyMood(aiMusic.Mood.Sad)
+aiMusic.applyMood(aiMusic.Mood.Epic)
+aiMusic.applyMood(aiMusic.Mood.Calm)
+aiMusic.applyMood(aiMusic.Mood.Spooky)
+aiMusic.applyMood(aiMusic.Mood.Dreamy)
+
+// Reset to known state for playback
+aiMusic.setScale(aiMusic.Scale.Major)
+aiMusic.setTempo(240)
+
+// ─── Notes & patterns ─────────────────────────────────────────────────────
+aiMusic.playNote()
+aiMusic.playMelody(4)
 aiMusic.playRandomChord()
 aiMusic.playArpeggio(4)
-aiMusic.playRandomRhythm(4)
-aiMusic.playChordProgression()
-aiMusic.playRandomSfx()
+aiMusic.playProgression()
 aiMusic.playBassline(4)
-aiMusic.playFanfare()
-aiMusic.playAmbient(2)
-aiMusic.playCallAndResponse(4)
-aiMusic.playRandomSolo(4)
+aiMusic.playRhythm(4)
+aiMusic.playCallResponse()
 
-// Test: articulation variants
-aiMusic.setArticulation(aiMusic.Articulation.Staccato)
-aiMusic.playRandomMelody(2)
-aiMusic.setArticulation(aiMusic.Articulation.Legato)
-aiMusic.playRandomMelody(2)
-aiMusic.setArticulation(aiMusic.Articulation.Accent)
-aiMusic.playRandomNote()
-aiMusic.setArticulation(aiMusic.Articulation.Normal)
+// Feel variants
+aiMusic.setFeel(aiMusic.Feel.Staccato)
+aiMusic.playMelody(2)
+aiMusic.setFeel(aiMusic.Feel.Legato)
+aiMusic.playMelody(2)
+aiMusic.setFeel(aiMusic.Feel.Swing)
+aiMusic.playMelody(2)
+aiMusic.setFeel(aiMusic.Feel.Straight)
 
-// ── Percussion ────────────────────────────────────────────────────────────────
-aiMusic.playDrumPattern(4)
-aiMusic.playPercHit()
+// ─── Drums ────────────────────────────────────────────────────────────────
+aiMusic.hitDrum(aiMusic.Drum.Kick)
+aiMusic.hitDrum(aiMusic.Drum.Snare)
+aiMusic.hitDrum(aiMusic.Drum.HiHat)
+aiMusic.hitDrum(aiMusic.Drum.Tom)
+aiMusic.hitDrum(aiMusic.Drum.Cymbal)
+aiMusic.playGroove(4)
 
-// ── Song Generation ───────────────────────────────────────────────────────────
+// ─── Songs ────────────────────────────────────────────────────────────────
+aiMusic.playSection(aiMusic.Section.Intro)
+aiMusic.playSection(aiMusic.Section.Verse)
+aiMusic.playSection(aiMusic.Section.Chorus)
+aiMusic.playSection(aiMusic.Section.Bridge)
+aiMusic.playSection(aiMusic.Section.Outro)
+aiMusic.playLoop(1)
+
+// ─── Visualizer ───────────────────────────────────────────────────────────
+aiMusic.setVisualizer(aiMusic.Visualizer.Bars)
+aiMusic.playMelody(4)
+aiMusic.setVisualizer(aiMusic.Visualizer.Wave)
+aiMusic.playMelody(4)
+aiMusic.setVisualizer(aiMusic.Visualizer.Rings)
+aiMusic.playMelody(4)
+aiMusic.setVisualizer(aiMusic.Visualizer.Rain)
+aiMusic.playMelody(4)
+aiMusic.setVisualizer(aiMusic.Visualizer.Off)
+
+// ─── Song Code round trip ────────────────────────────────────────────────
+aiMusic.setSeed(777)
+aiMusic.setTempo(140)
+aiMusic.setScale(aiMusic.Scale.Dorian)
+aiMusic.setOctave(1)
+const code = aiMusic.getSongCode()
 aiMusic.setSeed(1)
-aiMusic.setTempo(240)  // maximum speed for test pass
-
-aiMusic.playSongSection(aiMusic.SongSection.Intro)
-aiMusic.playSongSection(aiMusic.SongSection.Verse)
-aiMusic.playSongSection(aiMusic.SongSection.Chorus)
-aiMusic.playSongSection(aiMusic.SongSection.Bridge)
-aiMusic.playSongSection(aiMusic.SongSection.Outro)
-
-aiMusic.playRandomLoop(1)
-
-// Test: composeSong styles (1-bar snippets each, 240 BPM)
-aiMusic.setTempo(240)
-aiMusic.composeSong(aiMusic.SongStyle.Upbeat)
-aiMusic.setTempo(240)
-aiMusic.composeSong(aiMusic.SongStyle.Sad)
-aiMusic.setTempo(240)
-aiMusic.composeSong(aiMusic.SongStyle.Epic)
-aiMusic.setTempo(240)
-aiMusic.composeSong(aiMusic.SongStyle.Calm)
-aiMusic.setTempo(240)
-aiMusic.composeSong(aiMusic.SongStyle.Mysterious)
-aiMusic.setTempo(240)
-aiMusic.composeSong(aiMusic.SongStyle.Heroic)
-aiMusic.setTempo(240)
-aiMusic.composeSong(aiMusic.SongStyle.Ambient)
-aiMusic.setTempo(240)
-aiMusic.composeSong(aiMusic.SongStyle.Default)
-
-// ── Visualizer ────────────────────────────────────────────────────────────────
-aiMusic.enableVisualizer(true)
-
-aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Bars)
-aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Wave)
-aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Particles)
-aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Spectrum)
-aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Matrix)
-aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Circle)
-aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Bounce)
-aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Spiral)
-
-aiMusic.setVisualizerColor(aiMusic.VizColor.Rainbow)
-aiMusic.setVisualizerColor(aiMusic.VizColor.Warm)
-aiMusic.setVisualizerColor(aiMusic.VizColor.Cool)
-aiMusic.setVisualizerColor(aiMusic.VizColor.Mono)
-
-aiMusic.vizPulse(440)
-aiMusic.vizPulse(880)
-aiMusic.vizPulse(220)
-
-aiMusic.clearVisualizer()
-aiMusic.enableVisualizer(false)
-
-// ── Reproducibility ───────────────────────────────────────────────────────────
-aiMusic.setSeed(123)
-aiMusic.setScale(aiMusic.Scale.Pentatonic)
-aiMusic.setTempo(200)
-aiMusic.playRandomNote()
-aiMusic.playRandomNote()
+aiMusic.setTempo(60)
+aiMusic.loadSongCode(code)        // restore
+aiMusic.loadSongCode("")          // ignore
+aiMusic.loadSongCode("garbage")   // ignore
+aiMusic.loadSongCode("AIM4:bad")  // ignore (too few parts)

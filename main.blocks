@@ -4,15 +4,12 @@
     <statement name="HANDLER">
       <block type="typescript_statement" id="ts-demo">
         <mutation xmlns="http://www.w3.org/1999/xhtml"
-          line0="// AI Music Random — Demo"
+          line0="// AI Music Random — demo"
           line1="aiMusic.setSeed(42)"
-          line2="aiMusic.setScale(aiMusic.Scale.Pentatonic)"
-          line3="aiMusic.setTempo(120)"
-          line4="aiMusic.setInstrument(WaveShape.Triangle)"
-          line5="aiMusic.enableVisualizer(true)"
-          line6="aiMusic.setVisualizerStyle(aiMusic.VisualizerStyle.Bars)"
-          line7="aiMusic.playFullSong()"
-          numlines="8">
+          line2="aiMusic.applyMood(aiMusic.Mood.Happy)"
+          line3="aiMusic.setVisualizer(aiMusic.Visualizer.Bars)"
+          line4="aiMusic.playFullSong()"
+          numlines="5">
         </mutation>
       </block>
     </statement>
